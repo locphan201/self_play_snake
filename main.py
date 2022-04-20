@@ -3,16 +3,20 @@ import random
 from theme import *
 from snake import Snake
 
-pg.init()
 SIZE, size = 800, 50
-window = pg.display.set_mode((SIZE, SIZE))
-pg.display.set_caption("Snake")
-VERSION = '0.0.9'
+VERSION = '0.1.0'
+CONTROLL_ENABLE = False
 
-def generate_food():
-    x = random.randint(0, SIZE/size-1)
-    y = random.randint(0, SIZE/size-1)
-    return [x, y]
+def generate_food(snake):
+    isIn = True
+    food = [random.randint(0, SIZE/size-1), random.randint(0, SIZE/size-1)]
+    while isIn:
+        for b in snake:
+            if food in b:
+                food = [random.randint(0, SIZE/size-1), random.randint(0, SIZE/size-1)]
+                continue
+        isIn = False
+    return food
 
 def draw_snake(window, snake):
     head = snake.body[0]
@@ -49,11 +53,6 @@ def draw_snake(window, snake):
 def draw_food(window, food):
     pg.draw.circle(window, RED, ((food[0]+0.5)*size, (food[1]+0.5)*size), size/2)
 
-def draw_grid(window, size):
-    for i in range(0, SIZE, size):
-        pg.draw.line(window, (255, 255, 255), (i, 0), (i, SIZE))
-        pg.draw.line(window, (255, 255, 255), (0, i), (SIZE, i))
-
 def isEaten(head, food):
     if head[0] == food[0] and head[1] == food[1]:
         return True
@@ -86,24 +85,24 @@ def auto_play(snake, food, direct):
     x = head[0] - food[0]
     y = head[1] - food[1]
     temp = direct
-    if temp == 0 or temp == 1:
+    if direct == 0 or direct == 1:
         if -1 <= x and x <= 1:
             if check_obj(snake, direct):
-                direct = random.randint(0, 1) + 2
+                temp = random.randint(0, 1) + 2
             elif y > 0:
-                direct = 2
+                temp = 2
             elif y < 0:
-                direct = 3
+                temp = 3
 
-    if temp == 2 or temp == 3:
+    if direct == 2 or direct == 3:
         if -1 <= y and y <= 1:
             if check_obj(snake, direct):
-                direct = random.randint(0, 1)
+                temp = random.randint(0, 1)
             elif x > 0:
-                direct = 0
+                temp = 0
             elif x < 0:
-                direct = 1
-    return direct
+                temp = 1
+    return temp
 
 def main(window):
     running = True
@@ -111,7 +110,7 @@ def main(window):
     time = 0
     fps, frame, speed = 120, 0, 12
     snake = Snake(5, int(SIZE/size-1))
-    food = generate_food()
+    food = generate_food(snake.body)
     start = True
     direct = 0
     point = 0
@@ -120,7 +119,8 @@ def main(window):
         clock.tick(fps)
         window.fill(BACKGROUND)
 
-        direct = auto_play(snake, food, direct)
+        if not CONTROLL_ENABLE:
+            direct = auto_play(snake, food, direct)
 
         draw_food(window, food)
         draw_snake(window, snake)
@@ -136,7 +136,7 @@ def main(window):
 
         if isEaten(snake.body[0], food):
             snake.eat()
-            food = generate_food()
+            food = generate_food(snake.body)
             point += 1
             time = 0
         else:
@@ -145,7 +145,7 @@ def main(window):
                 with open('score.txt', 'a') as f:
                     f.write('version: ' + VERSION + ', pts: ' + str(point)+'\n')
                 snake = Snake(5, int(SIZE/size-1))
-                food = generate_food()
+                food = generate_food(snake.body)
                 point, time = 0, 0
                 start = True
 
@@ -158,9 +158,21 @@ def main(window):
                 if event.key == pg.K_ESCAPE:
                     running = False
                     break
+                if CONTROLL_ENABLE:
+                    if event.key == pg.K_LEFT or event.key == pg.K_a:
+                        direct = 0
+                    if event.key == pg.K_RIGHT or event.key == pg.K_d:
+                        direct = 1
+                    if event.key == pg.K_UP or event.key == pg.K_w:
+                        direct = 2
+                    if event.key == pg.K_DOWN or event.key == pg.K_s:
+                        direct = 3
 
         pg.display.update()
     pg.quit()
 
 if __name__ == '__main__':
+    pg.init()
+    window = pg.display.set_mode((SIZE, SIZE))
+    pg.display.set_caption("Snake")
     main(window)
